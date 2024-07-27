@@ -48,7 +48,7 @@ def _get_stock_data(target_prices: dict) -> Optional[dict]:
 
 
 # Function to check if the market is open
-def _is_market_open():
+def _is_market_open() -> bool:
     """
     Check if the NYSE market is currently open.
 
