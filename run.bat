@@ -1,2 +1,2 @@
-cd C:\Users\suesa\PycharmProjects\StockChecker
+cd %USERPROFILE%\PycharmProjects\StockChecker
 python ./main.py
