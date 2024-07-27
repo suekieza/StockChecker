@@ -1,9 +1,5 @@
 import unittest
-from main import _get_stock_data, _is_market_open, monitor_stock_price
-from datetime import datetime
-import pytz
-import yfinance as yf
-import logging
+from main import _get_stock_data, _is_market_open
 
 
 class TestStockFunctions(unittest.TestCase):
