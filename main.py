@@ -1,4 +1,5 @@
 import time
+import logging
 from plyer import notification
 import yfinance as yf
 import pandas_market_calendars as mcal
@@ -6,6 +7,14 @@ from datetime import datetime, timedelta
 import pytz
 from typing import Optional
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # Set the logging level to INFO
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()  # Log to the console
+    ]
+)
 
 # Function to fetch the current stock prices and stock objects
 def _get_stock_data(target_prices: dict) -> Optional[dict]:
@@ -40,10 +49,11 @@ def _get_stock_data(target_prices: dict) -> Optional[dict]:
                 'current_price': current_price,
                 'company_name': company_name
             }
+        logging.info(f"Successfully fetched stock data for symbols: {symbols}")
         return stock_data
     except Exception as e:
-        # Print the error message and return None
-        print("Error fetching stock data:", e)
+        # Log the error message
+        logging.error("Error fetching stock data", exc_info=True)
         return None
 
 
@@ -55,29 +65,36 @@ def _is_market_open() -> bool:
     Returns:
         bool: True if the market is open, False otherwise.
     """
-    # Get the NYSE calendar
-    nyse = mcal.get_calendar('NYSE')
+    try:
+        # Get the NYSE calendar
+        nyse = mcal.get_calendar('NYSE')
 
-    # Get the current time in New York timezone
-    current_time = datetime.now(pytz.timezone('America/New_York'))
+        # Get the current time in New York timezone
+        current_time = datetime.now(pytz.timezone('America/New_York'))
 
-    # Get the market schedule for the next day
-    schedule = nyse.schedule(
-        start_date=current_time.strftime('%Y-%m-%d'),
-        end_date=(current_time + timedelta(days=1)).strftime('%Y-%m-%d')
-    )
+        # Get the market schedule for the next day
+        schedule = nyse.schedule(
+            start_date=current_time.strftime('%Y-%m-%d'),
+            end_date=(current_time + timedelta(days=1)).strftime('%Y-%m-%d')
+        )
 
-    # Check if there is a schedule for the current day
-    if not schedule.empty:
-        # Get the market open and close times
-        market_open = schedule.iloc[0]['market_open'].to_pydatetime()
-        market_close = schedule.iloc[0]['market_close'].to_pydatetime()
+        # Check if there is a schedule for the current day
+        if not schedule.empty:
+            # Get the market open and close times
+            market_open = schedule.iloc[0]['market_open'].to_pydatetime()
+            market_close = schedule.iloc[0]['market_close'].to_pydatetime()
 
-        # Check if the current time is within the market hours
-        return market_open <= current_time <= market_close
+            # Check if the current time is within the market hours
+            is_open = market_open <= current_time <= market_close
+            logging.info(f"Market open status: {is_open}")
+            return is_open
 
-    # If there is no schedule, assume the market is closed
-    return False
+        # If there is no schedule, assume the market is closed
+        logging.info("No market schedule found. Assuming market is closed.")
+        return False
+    except Exception as e:
+        logging.error("Error checking market open status", exc_info=True)
+        return False
 
 
 # Main function to continuously monitor the stock prices and trigger reminder
@@ -96,18 +113,18 @@ def monitor_stock_price(target_prices: dict) -> Optional[dict]:
             stock_data = _get_stock_data(target_prices)
             if stock_data is not None:
                 for symbol, data in stock_data.items():
-                    # Print company name
-                    print(f"Stock: {symbol} ({data['company_name']})")
+                    # Log company name
+                    logging.info(f"Stock: {symbol} ({data['company_name']})")
 
-                    # Print current price
+                    # Log current price
                     current_price = data['current_price']
-                    print(f"Current Price: {current_price}")
+                    logging.info(f"Current Price: {current_price}")
 
                     # Get target price for the symbol
                     target_price = target_prices.get(symbol)
 
-                    # Print target price
-                    print(f"Target Price: {target_price}")
+                    # Log target price
+                    logging.info(f"Target Price: {target_price}")
 
                     if target_price is not None:
                         # Calculate the lower and upper bounds for the target range
@@ -124,7 +141,7 @@ def monitor_stock_price(target_prices: dict) -> Optional[dict]:
                                 f"Target Range: ${lower_bound:.2f} - ${upper_bound:.2f}\n"
                                 f"Keep an eye on this one! O__o"
                             )
-                            notification_timeout = 30  # Notification will automatically close after 10 seconds
+                            notification_timeout = 30  # Notification will automatically close after 30 seconds
 
                             # Trigger notification
                             notification.notify(
@@ -135,6 +152,7 @@ def monitor_stock_price(target_prices: dict) -> Optional[dict]:
                                 app_name='Stock Checker',  # Custom app name
                                 ticker=f"{symbol}"  # Ticker symbol associated with the app
                             )
+                            logging.info(f"Notification sent for {symbol}: Price ${current_price:.2f} within target range.")
                         elif current_price < lower_bound:
                             # Construct notification message
                             notification_title = f"STOCK CHECKER"
@@ -144,7 +162,7 @@ def monitor_stock_price(target_prices: dict) -> Optional[dict]:
                                 f"This is below the target range.\n"
                                 f"Consider buying now! "
                             )
-                            notification_timeout = 30  # Notification will automatically close after 10 seconds
+                            notification_timeout = 30  # Notification will automatically close after 30 seconds
 
                             # Trigger notification
                             notification.notify(
@@ -155,6 +173,10 @@ def monitor_stock_price(target_prices: dict) -> Optional[dict]:
                                 app_name='Stock Checker',  # Custom app name
                                 ticker=f"{symbol}"  # Ticker symbol associated with the app
                             )
+                            logging.info(f"Notification sent for {symbol}: Price ${current_price:.2f} below target range.")
+        else:
+            logging.info("Market is closed. Skipping stock price checks.")
+
         time.sleep(3600)
 
 
@@ -164,4 +186,5 @@ if __name__ == "__main__":
                      'GAIN': 13.60, 'STAG': 34.00, 'MSFT': 390.00}
 
     # Start monitoring the stock prices
+    logging.info("Starting stock price monitoring...")
     monitor_stock_price(target_prices)
