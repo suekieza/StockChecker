@@ -10,11 +10,10 @@ from typing import Optional
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,  # Set the logging level to INFO
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler()  # Log to the console
-    ]
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],  # Log to the console
 )
+
 
 # Function to fetch the current stock prices and stock objects
 def _get_stock_data(target_prices: dict) -> Optional[dict]:
@@ -38,16 +37,16 @@ def _get_stock_data(target_prices: dict) -> Optional[dict]:
             stock = yf.Ticker(symbol)
 
             # Get the current price of the stock
-            current_price = stock.history(period='1d')['Close'].iloc[-1]
+            current_price = stock.history(period="1d")["Close"].iloc[-1]
 
             # Get the company name from the stock info
-            company_name = stock.info['longName']
+            company_name = stock.info["longName"]
 
             # Add the stock data to the dictionary
             stock_data[symbol] = {
-                'stock': stock,
-                'current_price': current_price,
-                'company_name': company_name
+                "stock": stock,
+                "current_price": current_price,
+                "company_name": company_name,
             }
         logging.info(f"Successfully fetched stock data for symbols: {symbols}")
         return stock_data
@@ -67,22 +66,22 @@ def _is_market_open() -> bool:
     """
     try:
         # Get the NYSE calendar
-        nyse = mcal.get_calendar('NYSE')
+        nyse = mcal.get_calendar("NYSE")
 
         # Get the current time in New York timezone
-        current_time = datetime.now(pytz.timezone('America/New_York'))
+        current_time = datetime.now(pytz.timezone("America/New_York"))
 
         # Get the market schedule for the next day
         schedule = nyse.schedule(
-            start_date=current_time.strftime('%Y-%m-%d'),
-            end_date=(current_time + timedelta(days=1)).strftime('%Y-%m-%d')
+            start_date=current_time.strftime("%Y-%m-%d"),
+            end_date=(current_time + timedelta(days=1)).strftime("%Y-%m-%d"),
         )
 
         # Check if there is a schedule for the current day
         if not schedule.empty:
             # Get the market open and close times
-            market_open = schedule.iloc[0]['market_open'].to_pydatetime()
-            market_close = schedule.iloc[0]['market_close'].to_pydatetime()
+            market_open = schedule.iloc[0]["market_open"].to_pydatetime()
+            market_close = schedule.iloc[0]["market_close"].to_pydatetime()
 
             # Check if the current time is within the market hours
             is_open = market_open <= current_time <= market_close
@@ -117,7 +116,7 @@ def monitor_stock_price(target_prices: dict) -> Optional[dict]:
                     logging.info(f"Stock: {symbol} ({data['company_name']})")
 
                     # Log current price
-                    current_price = data['current_price']
+                    current_price = data["current_price"]
                     logging.info(f"Current Price: {current_price}")
 
                     # Get target price for the symbol
@@ -148,11 +147,13 @@ def monitor_stock_price(target_prices: dict) -> Optional[dict]:
                                 title=notification_title,
                                 message=notification_message,
                                 timeout=notification_timeout,
-                                app_icon='box_yellow.ico',  # Path to the app icon
-                                app_name='Stock Checker',  # Custom app name
-                                ticker=f"{symbol}"  # Ticker symbol associated with the app
+                                app_icon="box_yellow.ico",  # Path to the app icon
+                                app_name="Stock Checker",  # Custom app name
+                                ticker=f"{symbol}",  # Ticker symbol associated with the app
                             )
-                            logging.info(f"Notification sent for {symbol}: Price ${current_price:.2f} within target range.")
+                            logging.info(
+                                f"Notification sent for {symbol}: Price ${current_price:.2f} within target range."
+                            )
                         elif current_price < lower_bound:
                             # Construct notification message
                             notification_title = f"STOCK CHECKER"
@@ -169,11 +170,13 @@ def monitor_stock_price(target_prices: dict) -> Optional[dict]:
                                 title=notification_title,
                                 message=notification_message,
                                 timeout=notification_timeout,
-                                app_icon='Box_Green.ico',  # Path to the app icon
-                                app_name='Stock Checker',  # Custom app name
-                                ticker=f"{symbol}"  # Ticker symbol associated with the app
+                                app_icon="Box_Green.ico",  # Path to the app icon
+                                app_name="Stock Checker",  # Custom app name
+                                ticker=f"{symbol}",  # Ticker symbol associated with the app
                             )
-                            logging.info(f"Notification sent for {symbol}: Price ${current_price:.2f} below target range.")
+                            logging.info(
+                                f"Notification sent for {symbol}: Price ${current_price:.2f} below target range."
+                            )
         else:
             logging.info("Market is closed. Skipping stock price checks.")
 
@@ -182,8 +185,14 @@ def monitor_stock_price(target_prices: dict) -> Optional[dict]:
 
 if __name__ == "__main__":
     # Define target prices for stocks
-    target_prices = {'AAPL': 183.00, 'O': 52.50, 'MAIN': 48.50,
-                     'GAIN': 13.60, 'STAG': 34.00, 'MSFT': 390.00}
+    target_prices = {
+        "AAPL": 190.00,
+        "O": 58.00,
+        "MAIN": 55.00,
+        "GAIN": 14.00,
+        "STAG": 33.00,
+        "MSFT": 400.00,
+    }
 
     # Start monitoring the stock prices
     logging.info("Starting stock price monitoring...")
